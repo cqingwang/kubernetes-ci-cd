@@ -9,8 +9,9 @@ spec:
     storage: 4Gi
   accessModes:
     - ReadWriteOnce
+  storageClassName: registry-data-volume
   hostPath:
-    path: "/data/registry/"
+    path: "/Users/chan/Documents/kubernetes-Volume/registry"
 
 ---
 kind: PersistentVolumeClaim
@@ -20,6 +21,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: registry-data-volume
   resources:
     requests:
       storage: 4Gi

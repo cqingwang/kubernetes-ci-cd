@@ -1,0 +1,147 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: gitlab-data-volume
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 3Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gitlab-data-volume
+  hostPath:
+    path: "/Users/chan/Documents/kubernetes-Volume/gitlab/data"
+
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: gitlab-config-volume
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gitlab-config-volume
+  hostPath:
+    path: "/Users/chan/Documents/kubernetes-Volume/gitlab/config"
+
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: gitlab-log-volume
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 800Mi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gitlab-log-volume
+  hostPath:
+    path: "/Users/chan/Documents/kubernetes-Volume/gitlab/log"
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: gitlab-data-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gitlab-data-volume
+  resources:
+    requests:
+      storage: 3Gi
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: gitlab-config-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gitlab-config-volume
+  resources:
+    requests:
+      storage: 100Mi
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: gitlab-log-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gitlab-log-volume
+  resources:
+    requests:
+      storage: 800Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab
+  labels:
+    app: gitlab
+spec:
+  ports:
+    - port: 18080
+      targetPort: 30080
+      nodePort: 30080
+      name: gitlab
+  selector:
+    app: gitlab
+    tier: gitlab
+  type: NodePort
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gitlab
+  labels:
+    app: gitlab
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gitlab
+        tier: gitlab
+    spec:
+      containers:
+      - image: gitlab/gitlab-ce:latest
+        name: gitlab
+        env:
+        - name: GITLAB_OMNIBUS_CONFIG
+          value: "external_url 'http://home.changqingstudio.com:30080/'; "
+        volumeMounts:
+        - name: gitlab-config
+          mountPath: /etc/gitlab
+        - name: gitlab-log
+          mountPath: /var/log/gitlab
+        - name: gitlab-data
+          mountPath: /var/opt/gitlab
+        ports:
+        - containerPort: 30080
+          name: gitlab
+      volumes:
+      - name: gitlab-config
+        persistentVolumeClaim:
+          claimName: gitlab-config-claim
+      - name: gitlab-log
+        persistentVolumeClaim:
+          claimName: gitlab-log-claim
+      - name: gitlab-data
+        persistentVolumeClaim:
+          claimName: gitlab-data-claim
+
